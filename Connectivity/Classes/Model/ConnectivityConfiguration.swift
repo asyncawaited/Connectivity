@@ -42,6 +42,8 @@ typealias Configuration = ConnectivityConfiguration // For internal use.
     
     /// % successful connections required to be deemed to have connectivity
     let successThreshold: Connectivity.Percentage
+    /// When set, the library would buffer successive failures across polling rounds and only emit a disconnect event after that many consecutive errors
+    let maxConsecutiveFailures: Int?
     private (set) var urlSessionConfiguration: URLSessionConfiguration
     private (set) var validationMode: Connectivity.ValidationMode?
     
@@ -58,6 +60,7 @@ typealias Configuration = ConnectivityConfiguration // For internal use.
             expectedResponse: "Success"
         ),
         successThreshold: Connectivity.Percentage = Connectivity.Percentage(50.0),
+        maxConsecutiveFailures: Int? = nil,
         urlSessionConfiguration: URLSessionConfiguration = defaultURLSessionConfiguration,
         validationMode: Connectivity.ValidationMode? = nil
     ) {
@@ -70,6 +73,7 @@ typealias Configuration = ConnectivityConfiguration // For internal use.
         self.pollWhileOfflineOnly = pollWhileOfflineOnly
         self.responseValidator = responseValidator
         self.successThreshold = successThreshold
+        self.maxConsecutiveFailures = maxConsecutiveFailures
         self.urlSessionConfiguration = urlSessionConfiguration
         self.validationMode = validationMode
     }

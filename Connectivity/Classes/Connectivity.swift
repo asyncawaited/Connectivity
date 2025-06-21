@@ -167,6 +167,11 @@ public class Connectivity: NSObject {
     /// % successful connections required to be deemed to have connectivity
     public var successThreshold = Connectivity.Percentage(50.0)
     
+    /// When set, the library would buffer successive failures across polling rounds and only emit a disconnect event after that many consecutive errors
+    public var maxConsecutiveFailures: Int?
+    
+    private var currentConsecutiveFailures: Int = 0
+    
     /// Timer for polling connectivity endpoints when not awaiting changes in reachability
     private var timer: Timer?
     
@@ -430,6 +435,7 @@ private extension Connectivity {
         pollWhileOfflineOnly = configuration.pollWhileOfflineOnly
         responseValidator = configuration.responseValidator
         successThreshold = configuration.successThreshold
+        maxConsecutiveFailures = configuration.maxConsecutiveFailures
         Self.urlSessionConfiguration = configuration.urlSessionConfiguration
         if let validationMode = configuration.validationMode {
             self.validationMode = validationMode
@@ -687,9 +693,21 @@ private extension Connectivity {
     /// Determines whether a change in connectivity has taken place.
     private func statusHasChanged(previousStatus: ConnectivityStatus?, currentStatus: ConnectivityStatus) -> Bool {
         guard let previousStatus = previousStatus else {
+            currentConsecutiveFailures = 0
             return true
         }
-        return previousStatus != currentStatus
+        if let maxConsecutiveFailures = self.maxConsecutiveFailures {
+            if currentConsecutiveFailures < maxConsecutiveFailures {
+                currentConsecutiveFailures = currentConsecutiveFailures + 1
+                return true
+            } else {
+                currentConsecutiveFailures = 0
+                return previousStatus != currentStatus
+            }
+        } else {
+            currentConsecutiveFailures = 0
+            return previousStatus != currentStatus
+        }
     }
     
     /// Updates the connectivity status using network interface info provided by `NWPath`.
